@@ -1,0 +1,53 @@
+version: '3.8'
+services:
+  db:
+    networks:
+      - "common-network"
+    image: mysql:8.0.33
+    restart: always
+    environment:
+      MYSQL_DATABASE: "kbackend"
+      MYSQL_ROOT_PASSWORD: "password"
+    ports:
+      - "3306:3306"
+    volumes:
+      - your_data_volume:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    networks:
+      - "common-network"
+    build:
+      context: ./KChatWS/
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MYSQL_DATABASE: mysql
+      MYSQL_ROOT_PASSWORD: root
+
+  client:
+    networks:
+      - "common-network"
+    env_file:
+      - ./.env
+    build: 
+      context: ./client/
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  your_data_volume:
+networks:
+  common-network:
+    driver: bridge
